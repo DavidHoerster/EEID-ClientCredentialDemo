@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="acme-org/acme-org.csproj" />
+  <Project Path="secure-resource/secure-resource.csproj" />
+</Solution>

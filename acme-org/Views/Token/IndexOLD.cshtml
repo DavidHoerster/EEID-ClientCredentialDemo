@@ -1,0 +1,122 @@
+@model acme_org.Models.ClientCredentialsRequestViewModel
+@{
+    ViewData["Title"] = "Client Credentials Token";
+}
+
+<h1>Client Credentials Access Token</h1>
+<p class="text-muted">
+    Enter the client credential parameters for your service principal, call the token
+    endpoint, and inspect the resulting access token and its claims.
+    <strong>Development/testing use only</strong> &mdash; this page handles client secrets
+    and access tokens in plain text.
+</p>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">
+        <pre class="mb-0">@Model.ErrorMessage</pre>
+    </div>
+}
+
+<form asp-action="Index" method="post" class="mb-4">
+    @Html.AntiForgeryToken()
+
+    <div class="mb-3">
+        <label asp-for="TokenEndpoint" class="form-label"></label>
+        <input asp-for="TokenEndpoint" class="form-control" />
+        <div class="form-text">
+            Entra ID (workforce): <code>https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token</code><br />
+            Entra External ID (CIAM):
+            <code>https://{tenant-subdomain}.ciamlogin.com/{tenant-id}/oauth2/v2.0/token</code>
+        </div>
+        <span asp-validation-for="TokenEndpoint" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="ClientId" class="form-label"></label>
+        <input asp-for="ClientId" class="form-control" />
+        <span asp-validation-for="ClientId" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="ClientSecret" class="form-label"></label>
+        <input asp-for="ClientSecret" class="form-control" autocomplete="off" />
+        <div class="form-text">Leave blank if you're using a client assertion (below) instead.</div>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Scope" class="form-label"></label>
+        <input asp-for="Scope" class="form-control" placeholder="api://{app-id}/.default" />
+        <span asp-validation-for="Scope" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="GrantType" class="form-label"></label>
+        <input asp-for="GrantType" class="form-control" />
+    </div>
+
+    <details class="mb-3">
+        <summary>Certificate-based credential (optional, instead of a secret)</summary>
+        <div class="mt-2">
+            <label asp-for="ClientAssertionType" class="form-label"></label>
+            <input asp-for="ClientAssertionType" class="form-control mb-2"
+                   placeholder="urn:ietf:params:oauth:client-assertion-type:jwt-bearer" />
+            <label asp-for="ClientAssertion" class="form-label"></label>
+            <textarea asp-for="ClientAssertion" class="form-control" rows="3"
+                      placeholder="Pre-built signed JWT client assertion"></textarea>
+        </div>
+    </details>
+
+    <button type="submit" class="btn btn-primary">Get access token</button>
+</form>
+
+@if (!string.IsNullOrEmpty(Model.AccessToken))
+{
+    <hr />
+    <h3>Access token</h3>
+    <p>
+        <strong>Token type:</strong> @Model.TokenType
+        &nbsp;|&nbsp;
+        <strong>Expires in:</strong> @Model.ExpiresIn seconds
+    </p>
+
+    <div class="mb-3">
+        <textarea id="accessToken" class="form-control" rows="6" readonly>@Model.AccessToken</textarea>
+        <button type="button" class="btn btn-outline-secondary btn-sm mt-2" onclick="copyToken()">Copy token</button>
+    </div>
+
+    <h3>Claims</h3>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Claim type</th>
+                <th>Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var claim in Model.Claims)
+            {
+                <tr>
+                    <td><code>@claim.Type</code></td>
+                    <td style="word-break: break-all;">@claim.Value</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <details>
+        <summary>Raw token response</summary>
+        <pre>@Model.RawTokenResponse</pre>
+    </details>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function copyToken() {
+            const el = document.getElementById('accessToken');
+            el.select();
+            navigator.clipboard.writeText(el.value);
+        }
+    </script>
+}

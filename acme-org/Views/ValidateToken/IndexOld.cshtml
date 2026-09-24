@@ -1,0 +1,117 @@
+@model acme_org.Models.ValidateTokenViewModel
+@{
+    ViewData["Title"] = "Validate Access Token";
+}
+
+<h1>Validate Access Token</h1>
+<p class="text-muted">
+    Paste an access token to check whether it's still valid (not expired) and whether its
+    signature is intact (not tampered with), and to inspect its claims &mdash; including
+    <code>tags</code>, if the claims mapping policy from the token generator page is in effect.
+</p>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">
+        <pre class="mb-0">@Model.ErrorMessage</pre>
+    </div>
+}
+
+<form asp-action="Index" method="post" class="mb-4">
+    @Html.AntiForgeryToken()
+
+    <div class="mb-3">
+        <label asp-for="AccessToken" class="form-label"></label>
+        <textarea asp-for="AccessToken" class="form-control" rows="6"></textarea>
+        <span asp-validation-for="AccessToken" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="MetadataAddress" class="form-label"></label>
+        <input asp-for="MetadataAddress" class="form-control" />
+        <div class="form-text">
+            Entra ID (workforce):
+            <code>https://login.microsoftonline.com/{tenant-id}/v2.0/.well-known/openid-configuration</code><br />
+            Entra External ID (CIAM):
+            <code>https://{tenant-subdomain}.ciamlogin.com/{tenant-id}/v2.0/.well-known/openid-configuration</code>
+        </div>
+        <div class="form-text text-warning">
+            This must be the metadata URL for the tenant/authority you actually trust &mdash;
+            it is <em>not</em> read from the token itself, deliberately: trusting whatever
+            issuer a token claims would let a forged or foreign-tenant token validate
+            successfully against its own (legitimate, but wrong) keys.
+        </div>
+        <span asp-validation-for="MetadataAddress" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="ExpectedAudience" class="form-label"></label>
+        <input asp-for="ExpectedAudience" class="form-control" placeholder="api://{app-id} or the client ID" />
+        <div class="form-text">Leave blank to skip audience validation (flagged as a warning in the results).</div>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Validate</button>
+</form>
+
+@if (Model.SignatureValid.HasValue || Model.LifetimeValid.HasValue)
+{
+    <hr />
+
+    <div class="alert @(Model.IsOverallValid ? "alert-success" : "alert-danger")">
+        <strong>@(Model.IsOverallValid ? "Valid" : "Invalid")</strong> &mdash;
+        signature @(Model.SignatureValid == true ? "OK" : "FAILED"),
+        lifetime @(Model.LifetimeValid == true ? "OK" : "FAILED")@(Model.AudienceChecked ? ", audience OK" : "")
+    </div>
+
+    @if (!Model.AudienceChecked)
+    {
+        <div class="alert alert-warning">Audience was not checked (no expected audience entered).</div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.SignatureError))
+    {
+        <div class="alert alert-danger">Signature: @Model.SignatureError</div>
+    }
+    @if (!string.IsNullOrEmpty(Model.LifetimeError))
+    {
+        <div class="alert alert-danger">Lifetime: @Model.LifetimeError</div>
+    }
+
+    <dl class="row">
+        <dt class="col-sm-3">Not before</dt>
+        <dd class="col-sm-9">@(Model.NotBeforeUtc?.ToString("u") ?? "(not present)")</dd>
+        <dt class="col-sm-3">Expires</dt>
+        <dd class="col-sm-9">@(Model.ExpiresAtUtc?.ToString("u") ?? "(not present)")</dd>
+        <dt class="col-sm-3"><code>tags</code> claim</dt>
+        <dd class="col-sm-9">@(Model.TagsClaimValue ?? "(not present in this token)")</dd>
+    </dl>
+
+    @if (Model.SignatureValid == false)
+    {
+        <p class="text-warning"><em>Signature validation failed &mdash; the claims below are shown for reference only and have
+            not been cryptographically verified.</em></p>
+        }
+
+        <h3>Claims</h3>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Claim type</th>
+                    <th>Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var claim in Model.Claims)
+                {
+                    <tr>
+                        <td><code>@claim.Type</code></td>
+                        <td style="word-break: break-all;">@claim.Value</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    @section Scripts {
+        <partial name="_ValidationScriptsPartial" />
+    }

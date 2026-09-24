@@ -1,0 +1,45 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "acme-token-generator",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build-acme-token-generator",
+            // Adjust "acme-org" if acme-org.csproj's assembly name differs from the file name
+            "program": "${workspaceFolder}/acme-org/bin/Debug/net10.0/acme-org.dll",
+            "cwd": "${workspaceFolder}/acme-org",
+            "stopAtEntry": false,
+            "serverReadyAction": {
+                "action": "openExternally",
+                "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
+            },
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            }
+        },
+        {
+            "name": "secure-resource-api",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build-secure-resource-api",
+            // Adjust "secure-resource-api" if secure-resource-api.csproj's assembly name differs from the file name
+            "program": "${workspaceFolder}/secure-resource/bin/Debug/net10.0/secure-resource.dll",
+            "cwd": "${workspaceFolder}/secure-resource",
+            "stopAtEntry": false,
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            }
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Launch Both",
+            "configurations": [
+                "acme-token-generator",
+                "secure-resource-api"
+            ],
+            "stopAll": true
+        }
+    ]
+}

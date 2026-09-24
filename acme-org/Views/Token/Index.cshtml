@@ -1,0 +1,186 @@
+@model acme_org.Models.ClientCredentialsRequestViewModel
+@{
+    ViewData["Title"] = "Client Credentials Token";
+}
+
+<h1>Client Credentials Access Token</h1>
+<p class="text-muted">
+    Enter the client credential parameters for your service principal, call the token
+    endpoint, and inspect the resulting access token and its claims.
+    <strong>Development/testing use only</strong> &mdash; this page handles secrets,
+    certificate private keys, and access tokens in plain text.
+</p>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">
+        <pre class="mb-0">@Model.ErrorMessage</pre>
+    </div>
+}
+
+<form asp-action="Index" method="post" enctype="multipart/form-data" class="mb-4">
+    @Html.AntiForgeryToken()
+
+    <div class="mb-3">
+        <label asp-for="TokenEndpoint" class="form-label"></label>
+        <input asp-for="TokenEndpoint" class="form-control" />
+        <div class="form-text">
+            Entra ID (workforce): <code>https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token</code><br />
+            Entra External ID (CIAM):
+            <code>https://{tenant-subdomain}.ciamlogin.com/{tenant-id}/oauth2/v2.0/token</code>
+        </div>
+        <span asp-validation-for="TokenEndpoint" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="ClientId" class="form-label"></label>
+        <input asp-for="ClientId" class="form-control" />
+        <span asp-validation-for="ClientId" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Scope" class="form-label"></label>
+        <input asp-for="Scope" class="form-control" placeholder="api://{app-id}/.default" />
+        <span asp-validation-for="Scope" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="GrantType" class="form-label"></label>
+        <input asp-for="GrantType" class="form-control" />
+    </div>
+
+    <fieldset class="mb-3">
+        <legend class="col-form-label pt-0">Credential type</legend>
+        <div class="form-check">
+            <input class="form-check-input" type="radio" asp-for="CredentialType" value="Secret" id="credSecret" />
+            <label class="form-check-label" for="credSecret">Client secret</label>
+        </div>
+        <div class="form-check">
+            <input class="form-check-input" type="radio" asp-for="CredentialType" value="Certificate" id="credCert" />
+            <label class="form-check-label" for="credCert">Certificate</label>
+        </div>
+        <div class="form-check">
+            <input class="form-check-input" type="radio" asp-for="CredentialType" value="PrebuiltAssertion"
+                   id="credAssertion" />
+            <label class="form-check-label" for="credAssertion">Pre-built client assertion (advanced)</label>
+        </div>
+    </fieldset>
+
+    <div id="secretSection" class="mb-3 border rounded p-3">
+        <label asp-for="ClientSecret" class="form-label"></label>
+        <input asp-for="ClientSecret" class="form-control" autocomplete="off" />
+    </div>
+
+    <div id="certificateSection" class="mb-3 border rounded p-3">
+        <div class="mb-2">
+            <label asp-for="CertificateStoreLocation" class="form-label"></label>
+            <select asp-for="CertificateStoreLocation" class="form-select">
+                <option value="CurrentUser">CurrentUser</option>
+                <option value="LocalMachine">LocalMachine</option>
+            </select>
+        </div>
+        <div class="mb-2">
+            <label asp-for="CertificateThumbprint" class="form-label"></label>
+            <input asp-for="CertificateThumbprint" class="form-control" placeholder="e.g. A1B2C3D4E5F6..." />
+        </div>
+        <div class="mb-2">
+            <label asp-for="CertificatePfxFile" class="form-label"></label>
+            <input asp-for="CertificatePfxFile" type="file" class="form-control" accept=".pfx" />
+        </div>
+        <div>
+            <label asp-for="CertificatePfxPassword" class="form-label"></label>
+            <input asp-for="CertificatePfxPassword" class="form-control" autocomplete="off" />
+        </div>
+        <div class="form-text">
+            If a .pfx is uploaded it's used instead of the thumbprint lookup. Otherwise the
+            certificate is loaded by thumbprint from the selected store &mdash; this page
+            builds and signs the client assertion JWT for you.
+        </div>
+    </div>
+
+    <details id="assertionSection" class="mb-3 border rounded p-3">
+        <summary>Pre-built client assertion (e.g. signed via Key Vault)</summary>
+        <div class="mt-2">
+            <label asp-for="ClientAssertionType" class="form-label"></label>
+            <input asp-for="ClientAssertionType" class="form-control mb-2"
+                   placeholder="urn:ietf:params:oauth:client-assertion-type:jwt-bearer" />
+            <label asp-for="ClientAssertion" class="form-label"></label>
+            <textarea asp-for="ClientAssertion" class="form-control" rows="3"
+                      placeholder="Pre-built signed JWT client assertion"></textarea>
+        </div>
+    </details>
+
+    <button type="submit" class="btn btn-primary">Get access token</button>
+</form>
+
+@if (!string.IsNullOrEmpty(Model.GeneratedClientAssertion))
+{
+    <details class="mb-3">
+        <summary>Generated client assertion (built &amp; signed by this page)</summary>
+        <pre style="white-space: pre-wrap; word-break: break-all;">@Model.GeneratedClientAssertion</pre>
+    </details>
+}
+
+@if (!string.IsNullOrEmpty(Model.AccessToken))
+{
+    <hr />
+    <h3>Access token</h3>
+    <p>
+        <strong>Token type:</strong> @Model.TokenType
+        &nbsp;|&nbsp;
+        <strong>Expires in:</strong> @Model.ExpiresIn seconds
+    </p>
+
+    <div class="mb-3">
+        <textarea id="accessToken" class="form-control" rows="6" readonly>@Model.AccessToken</textarea>
+        <button type="button" class="btn btn-outline-secondary btn-sm mt-2" onclick="copyToken()">Copy token</button>
+    </div>
+
+    <h3>Claims</h3>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Claim type</th>
+                <th>Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var claim in Model.Claims)
+            {
+                <tr>
+                    <td><code>@claim.Type</code></td>
+                    <td style="word-break: break-all;">@claim.Value</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <details>
+        <summary>Raw token response</summary>
+        <pre>@Model.RawTokenResponse</pre>
+    </details>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function copyToken() {
+            const el = document.getElementById('accessToken');
+            el.select();
+            navigator.clipboard.writeText(el.value);
+        }
+
+        function updateCredentialSections() {
+            const checked = document.querySelector('input[name="CredentialType"]:checked');
+            const method = checked ? checked.value : 'Secret';
+            document.getElementById('secretSection').style.display = method === 'Secret' ? '' : 'none';
+            document.getElementById('certificateSection').style.display = method === 'Certificate' ? '' : 'none';
+            document.getElementById('assertionSection').style.display = method === 'PrebuiltAssertion' ? '' : 'none';
+        }
+
+        document.querySelectorAll('input[name="CredentialType"]').forEach(function (el) {
+            el.addEventListener('change', updateCredentialSections);
+        });
+        updateCredentialSections();
+    </script>
+}
