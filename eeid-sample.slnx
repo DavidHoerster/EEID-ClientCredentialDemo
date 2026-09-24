@@ -1,4 +1,5 @@
 <Solution>
   <Project Path="acme-org/acme-org.csproj" />
+  <Project Path="eeid-sample.AppHost/eeid-sample.AppHost.csproj" />
   <Project Path="secure-resource/secure-resource.csproj" />
 </Solution>
