@@ -13,7 +13,7 @@ public interface IOrganizationAudienceLookup
 // interface, never on this class directly.
 public class InMemoryOrganizationAudienceLookup : IOrganizationAudienceLookup
 {
-    private static readonly ConcurrentDictionary<string, string> Mapping = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly ConcurrentDictionary<string, string> ValidAudiences = new(StringComparer.OrdinalIgnoreCase)
     {
         // Sample entries — replace with real organization IDs and the audience
         // (App ID URI or client ID) of the app registration that acts as that
@@ -25,5 +25,5 @@ public class InMemoryOrganizationAudienceLookup : IOrganizationAudienceLookup
     };
 
     public bool TryGetAudience(string organizationId, out string? audience) =>
-        Mapping.TryGetValue(organizationId, out audience);
+        ValidAudiences.TryGetValue(organizationId, out audience);
 }
