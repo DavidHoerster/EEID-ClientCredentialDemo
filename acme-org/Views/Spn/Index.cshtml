@@ -1,0 +1,74 @@
+@model acme_org.Models.CreateServicePrincipalViewModel
+@{
+    ViewData["Title"] = "Create Service Principal";
+}
+
+<h1>Create Service Principal</h1>
+<p class="text-muted">
+    Creates a new app registration and service principal in the tenant, adds a
+    client secret, and optionally grants one or more app role assignments.
+    <strong>Development/admin use only</strong> &mdash; this uses a highly privileged
+    admin identity behind the scenes and shows a real client secret in plain text.
+</p>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">
+        <pre class="mb-0">@Model.ErrorMessage</pre>
+    </div>
+}
+
+<form asp-action="Index" method="post" class="mb-4">
+    @Html.AntiForgeryToken()
+
+    <div class="mb-3">
+        <label asp-for="DisplayName" class="form-label"></label>
+        <input asp-for="DisplayName" class="form-control" placeholder="e.g. finscan-test-client-3" />
+        <span asp-validation-for="DisplayName" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="SecretDescription" class="form-label"></label>
+        <input asp-for="SecretDescription" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="SecretExpiresInMonths" class="form-label"></label>
+        <input asp-for="SecretExpiresInMonths" type="number" min="1" max="24" class="form-control"
+               style="max-width: 10rem;" />
+        <span asp-validation-for="SecretExpiresInMonths" class="text-danger"></span>
+    </div>
+
+    <hr />
+
+    <button type="submit" class="btn btn-primary">Create service principal</button>
+</form>
+
+@if (Model.Created)
+{
+    <hr />
+    <div class="alert alert-success">Service principal created.</div>
+
+    <dl class="row">
+        <dt class="col-sm-3">Display name</dt>
+        <dd class="col-sm-9">@Model.NewDisplayName</dd>
+
+        <dt class="col-sm-3">Client ID (appId)</dt>
+        <dd class="col-sm-9"><code>@Model.NewClientId</code></dd>
+
+        <dt class="col-sm-3">Application object ID</dt>
+        <dd class="col-sm-9"><code>@Model.NewApplicationObjectId</code></dd>
+    </dl>
+
+    <div class="alert alert-warning">
+        <strong>Client secret (copy it now &mdash; it will not be shown again):</strong>
+        <div class="mb-2">
+            <textarea class="form-control" rows="2" readonly onclick="this.select()">@Model.ClientSecretValue</textarea>
+        </div>
+        Expires: @Model.ClientSecretExpiresUtc?.ToString("u")
+    </div>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
