@@ -1,6 +1,9 @@
+using acme_org.Services;
+using Azure.Identity;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
+using Microsoft.Graph;
 using Microsoft.Identity.Web;
 using Microsoft.Identity.Web.UI;
 using System.IdentityModel.Tokens.Jwt;
@@ -30,6 +33,19 @@ builder.Services.AddControllersWithViews(options =>
 }).AddMicrosoftIdentityUI();
 
 builder.Services.AddHttpClient("TokenClient");
+builder.Services.AddSingleton<IGraphTokenService, GraphTokenService>();
+
+builder.Services.AddSingleton(sp =>
+{
+    var config = sp.GetRequiredService<IConfiguration>().GetSection("GraphAdmin");
+    var tenantId = config["TenantId"]!;
+    var clientId = config["ClientId"]!;
+    var clientSecret = config["ClientSecret"]!;
+
+    var credential = new ClientSecretCredential(tenantId, clientId, clientSecret);
+    return new GraphServiceClient(credential, new[] { "https://graph.microsoft.com/.default" });
+});
+builder.Services.AddScoped<IGraphAdminService, GraphAdminService>();
 
 var app = builder.Build();
 
